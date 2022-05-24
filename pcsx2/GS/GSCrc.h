@@ -83,6 +83,7 @@ public:
 		XenosagaE3,
 		YakuzaGames,
 		ZettaiZetsumeiToshi2,
+		RatchetGames,
 		TitleCount,
 	};
 
