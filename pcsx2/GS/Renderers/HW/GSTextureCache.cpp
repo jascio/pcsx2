@@ -968,7 +968,7 @@ void GSTextureCache::InvalidateLocalMem(const GSOffset& off, const GSVector4i& r
 				{
 					if (g_gs_renderer->m_game.title == CRC::RatchetGames)
 					{
-						Read(t, GSVector4i(r.x, r.y, t->m_valid.z, t->m_valid.w));
+						Read(t, t->m_valid.rintersect(GSVector4i(t->m_valid.x, t->m_valid.y, t->m_valid.z, (t->m_valid.w <= 512) ? t->m_valid.w : t->m_valid.w/2 )));
 					}
 					else
 						Read(t, r.rintersect(t->m_valid));
