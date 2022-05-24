@@ -881,6 +881,16 @@ bool GSC_XenosagaE3(const GSFrameInfo& fi, int& skip)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// R&C Hack only
+////////////////////////////////////////////////////////////////////////////////
+
+bool GSC_RatchetGames(const GSFrameInfo& fi, int& skip)
+{
+	// added just to check CRC
+	return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 void GSState::SetupCrcHack()
 {
@@ -911,6 +921,7 @@ void GSState::SetupCrcHack()
 		lut[CRC::TombRaiderUnderworld] = GSC_TombRaiderUnderWorld;
 		lut[CRC::UrbanReign] = GSC_UrbanReign;
 		lut[CRC::ZettaiZetsumeiToshi2] = GSC_ZettaiZetsumeiToshi2;
+		lut[CRC::YakuzaGames] = GSC_RatchetGames;
 
 		// Channel Effect
 		lut[CRC::CrashBandicootWoC] = GSC_CrashBandicootWoC;

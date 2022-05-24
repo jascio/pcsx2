@@ -804,8 +804,13 @@ void GSTextureCache::InvalidateVideoMem(const GSOffset& off, const GSVector4i& r
 					GL_CACHE("TC: Dirty Target(%s) %d (0x%x) r(%d,%d,%d,%d)", to_string(type),
 						t->m_texture ? t->m_texture->GetID() : 0,
 						t->m_TEX0.TBP0, r.x, r.y, r.z, r.w);
-					t->m_TEX0.TBW = bw;
-					t->m_dirty.push_back(GSDirtyRect(r, psm, bw));
+					t->m_TEX0.TBW = bw;									
+					if (g_gs_renderer->m_game.title == CRC::RatchetGames)
+					{
+						t->m_dirty.push_back(GSDirtyRect(GSVector4i(r.x, r.y, t->m_valid.z, t->m_valid.w), psm, bw));
+					}
+					else
+						t->m_dirty.push_back(GSDirtyRect(r, psm, bw));
 				}
 				else
 				{
@@ -961,7 +966,12 @@ void GSTextureCache::InvalidateLocalMem(const GSOffset& off, const GSVector4i& r
 
 				if (GSConfig.UserHacks_DisablePartialInvalidation)
 				{
-					Read(t, r.rintersect(t->m_valid));
+					if (g_gs_renderer->m_game.title == CRC::RatchetGames)
+					{
+						Read(t, GSVector4i(r.x, r.y, t->m_valid.z, t->m_valid.w));
+					}
+					else
+						Read(t, r.rintersect(t->m_valid));
 				}
 				else
 				{
