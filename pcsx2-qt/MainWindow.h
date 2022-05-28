@@ -136,6 +136,7 @@ private Q_SLOTS:
 	void onLoggingOptionChanged();
 	void onScreenshotActionTriggered();
 	void onSaveGSDumpActionTriggered();
+	void onBlockDumpActionToggled(bool checked);
 
 	// Input Recording
 	void onInputRecNewActionTriggered();
@@ -156,6 +157,8 @@ private Q_SLOTS:
 
 protected:
 	void closeEvent(QCloseEvent* event) override;
+	void dragEnterEvent(QDragEnterEvent* event) override;
+	void dropEvent(QDropEvent* event) override;
 
 private:
 	enum : s32
@@ -205,6 +208,7 @@ private:
 	void populateLoadStateMenu(QMenu* menu, const QString& filename, const QString& serial, quint32 crc);
 	void populateSaveStateMenu(QMenu* menu, const QString& serial, quint32 crc);
 	void updateSaveStateMenus(const QString& filename, const QString& serial, quint32 crc);
+	void doStartDisc(const QString& path);
 	void doDiscChange(const QString& path);
 
 	Ui::MainWindow m_ui;
