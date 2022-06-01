@@ -874,7 +874,7 @@ void GSTextureCache::InvalidateVideoMem(const GSOffset& off, const GSVector4i& r
 					t->m_TEX0.TBW = bw;									
 					if (g_gs_renderer->m_game.title == CRC::RatchetGames)
 					{
-						t->m_dirty.push_back(GSDirtyRect(GSVector4i(r.x, r.y, t->m_valid.z, t->m_valid.w), psm, bw));
+						t->m_dirty.push_back(GSDirtyRect(GSVector4i(t->m_valid), psm, bw));
 					}
 					else
 						t->m_dirty.push_back(GSDirtyRect(r, psm, bw));

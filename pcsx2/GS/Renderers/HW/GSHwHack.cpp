@@ -921,7 +921,7 @@ void GSState::SetupCrcHack()
 		lut[CRC::TombRaiderUnderworld] = GSC_TombRaiderUnderWorld;
 		lut[CRC::UrbanReign] = GSC_UrbanReign;
 		lut[CRC::ZettaiZetsumeiToshi2] = GSC_ZettaiZetsumeiToshi2;
-		lut[CRC::YakuzaGames] = GSC_RatchetGames;
+		lut[CRC::RatchetGames] = GSC_RatchetGames;
 
 		// Channel Effect
 		lut[CRC::CrashBandicootWoC] = GSC_CrashBandicootWoC;
