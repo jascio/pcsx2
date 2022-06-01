@@ -137,7 +137,7 @@ GSState::GSState()
 	m_env.PRMODECONT.AC = 1;
 	m_last_prim.U32[0] = PRIM->U32[0];
 
-	Reset();
+	Reset(false);
 
 	ResetHandlers();
 }
@@ -178,10 +178,11 @@ void GSState::SetFrameSkip(int skip)
 	}
 }
 
-void GSState::Reset()
+void GSState::Reset(bool hardware_reset)
 {
 	// FIXME: bios logo not shown cut in half after reset, missing graphics in GoW after first FMV
-	// memset(m_mem.m_vm8, 0, m_mem.m_vmsize);
+	if (hardware_reset)
+		memset(m_mem.m_vm8, 0, m_mem.m_vmsize);
 	memset(&m_path, 0, sizeof(m_path));
 	memset(&m_v, 0, sizeof(m_v));
 
@@ -2016,21 +2017,21 @@ void GSState::Move()
 	{
 		if (spsm.trbpp == 32)
 		{
-			copyFast(m_mem.m_vm32, dpo.assertSizesMatch(GSLocalMemory::swizzle32), spo.assertSizesMatch(GSLocalMemory::swizzle32), [](u32* d, u32* s)
+			copyFast(m_mem.vm32(), dpo.assertSizesMatch(GSLocalMemory::swizzle32), spo.assertSizesMatch(GSLocalMemory::swizzle32), [](u32* d, u32* s)
 			{
 				*d = *s;
 			});
 		}
 		else if (spsm.trbpp == 24)
 		{
-			copyFast(m_mem.m_vm32, dpo.assertSizesMatch(GSLocalMemory::swizzle32), spo.assertSizesMatch(GSLocalMemory::swizzle32), [](u32* d, u32* s)
+			copyFast(m_mem.vm32(), dpo.assertSizesMatch(GSLocalMemory::swizzle32), spo.assertSizesMatch(GSLocalMemory::swizzle32), [](u32* d, u32* s)
 			{
 				*d = (*d & 0xff000000) | (*s & 0x00ffffff);
 			});
 		}
 		else // if(spsm.trbpp == 16)
 		{
-			copyFast(m_mem.m_vm16, dpo.assertSizesMatch(GSLocalMemory::swizzle16), spo.assertSizesMatch(GSLocalMemory::swizzle16), [](u16* d, u16* s)
+			copyFast(m_mem.vm16(), dpo.assertSizesMatch(GSLocalMemory::swizzle16), spo.assertSizesMatch(GSLocalMemory::swizzle16), [](u16* d, u16* s)
 			{
 				*d = *s;
 			});
@@ -2088,6 +2089,25 @@ void GSState::ReadFIFO(u8* mem, int size)
 
 	if (m_dump)
 		m_dump->ReadFIFO(size);
+}
+
+void GSState::ReadLocalMemoryUnsync(u8* mem, int qwc, GIFRegBITBLTBUF BITBLTBUF, GIFRegTRXPOS TRXPOS, GIFRegTRXREG TRXREG)
+{
+	const int sx = TRXPOS.SSAX;
+	const int sy = TRXPOS.SSAY;
+	const int w = TRXREG.RRW;
+	const int h = TRXREG.RRH;
+
+	const u16 bpp = GSLocalMemory::m_psm[BITBLTBUF.SPSM].trbpp;
+
+	GSTransferBuffer tb;
+	tb.Init(TRXPOS.SSAX, TRXPOS.SSAY, BITBLTBUF);
+
+	int len = qwc * 16;
+	if (!tb.Update(w, h, bpp, len))
+		return;
+
+	m_mem.ReadImageX(tb.x, tb.y, mem, len, BITBLTBUF, TRXPOS, TRXREG);
 }
 
 template void GSState::Transfer<0>(const u8* mem, u32 size);
@@ -2396,7 +2416,7 @@ int GSState::Defrost(const freezeData* fd)
 
 	Flush();
 
-	Reset();
+	Reset(false);
 
 	ReadState(&m_env.PRIM, data);
 
@@ -3212,12 +3232,14 @@ GSState::TextureMinMaxResult GSState::GetTextureMinMax(const GIFRegTEX0& TEX0, c
 				const GSVertex* vert_first = &m_vertex.buff[m_index.buff[0]];
 				const GSVertex* vert_second = &m_vertex.buff[m_index.buff[1]];
 
-				const bool swap_x = vert_first->U > vert_second->U;
-				const bool swap_y = vert_first->V > vert_second->V;
-
 				// we need to check that it's not going to repeat over the non-clipped part
 				if (wms != CLAMP_REGION_REPEAT && (wms != CLAMP_REPEAT || (static_cast<int>(st.x) & ~tw_mask) == (static_cast<int>(st.z) & ~tw_mask)))
 				{
+					// Check if the UV coords are going in a different direction to the verts, if they match direction, no need to swap
+					const bool u_forward = vert_first->U < vert_second->U;
+					const bool x_forward = vert_first->XYZ.X < vert_second->XYZ.X;
+					const bool swap_x = u_forward != x_forward;
+
 					if (int_rc.left < scissored_rc.left)
 					{
 						if(!swap_x)
@@ -3235,6 +3257,11 @@ GSState::TextureMinMaxResult GSState::GetTextureMinMax(const GIFRegTEX0& TEX0, c
 				}
 				if (wmt != CLAMP_REGION_REPEAT && (wmt != CLAMP_REPEAT || (static_cast<int>(st.y) & ~th_mask) == (static_cast<int>(st.w) & ~th_mask)))
 				{
+					// Check if the UV coords are going in a different direction to the verts, if they match direction, no need to swap
+					const bool v_forward = vert_first->V < vert_second->V;
+					const bool y_forward = vert_first->XYZ.Y < vert_second->XYZ.Y;
+					const bool swap_y = v_forward != y_forward;
+
 					if (int_rc.top < scissored_rc.top)
 					{
 						if (!swap_y)

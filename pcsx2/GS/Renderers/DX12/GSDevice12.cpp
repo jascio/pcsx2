@@ -720,7 +720,6 @@ void GSDevice12::DoInterlace(GSTexture* sTex, GSTexture* dTex, int shader, bool 
 
 	InterlaceConstantBuffer cb;
 	cb.ZrH = GSVector2(0, 1.0f / s.y);
-	cb.hH = s.y / 2;
 
 	GL_PUSH("DoInterlace %dx%d Shader:%d Linear:%d", size.x, size.y, shader, linear);
 
@@ -1202,7 +1201,7 @@ bool GSDevice12::CompileConvertPipelines()
 		gpb.SetPixelShader(ps.get());
 		gpb.SetNoDepthTestState();
 		gpb.SetNoStencilState();
-		gpb.SetBlendState(0, true, D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_MIN,
+		gpb.SetBlendState(0, true, D3D12_BLEND_ONE, D3D12_BLEND_ONE, D3D12_BLEND_OP_MIN,
 			D3D12_BLEND_ZERO, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD, D3D12_COLOR_WRITE_ENABLE_RED);
 
 		for (u32 ds = 0; ds < 2; ds++)

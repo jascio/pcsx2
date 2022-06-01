@@ -30,6 +30,7 @@
 #include "pcsx2/Frontend/GameList.h"
 #include "pcsx2/GSDumpReplayer.h"
 #include "pcsx2/HostDisplay.h"
+#include "pcsx2/HostSettings.h"
 #include "pcsx2/PerformanceMetrics.h"
 #include "pcsx2/Recording/InputRecording.h"
 
@@ -88,6 +89,7 @@ void MainWindow::initialize()
 	setupAdditionalUi();
 	setStyleFromSettings();
 	connectSignals();
+	connectVMThreadSignals(g_emu_thread);
 
 	restoreStateFromConfig();
 	switchToGameListView();
@@ -97,16 +99,16 @@ void MainWindow::initialize()
 
 void MainWindow::setupAdditionalUi()
 {
-	const bool toolbar_visible = QtHost::GetBaseBoolSettingValue("UI", "ShowToolbar", false);
+	const bool toolbar_visible = Host::GetBaseBoolSettingValue("UI", "ShowToolbar", false);
 	m_ui.actionViewToolbar->setChecked(toolbar_visible);
 	m_ui.toolBar->setVisible(toolbar_visible);
 
-	const bool toolbars_locked = QtHost::GetBaseBoolSettingValue("UI", "LockToolbar", false);
+	const bool toolbars_locked = Host::GetBaseBoolSettingValue("UI", "LockToolbar", false);
 	m_ui.actionViewLockToolbar->setChecked(toolbars_locked);
 	m_ui.toolBar->setMovable(!toolbars_locked);
 	m_ui.toolBar->setContextMenuPolicy(Qt::PreventContextMenu);
 
-	const bool status_bar_visible = QtHost::GetBaseBoolSettingValue("UI", "ShowStatusBar", true);
+	const bool status_bar_visible = Host::GetBaseBoolSettingValue("UI", "ShowStatusBar", true);
 	m_ui.actionViewStatusBar->setChecked(status_bar_visible);
 	m_ui.statusBar->setVisible(status_bar_visible);
 
@@ -215,6 +217,13 @@ void MainWindow::connectSignals()
 	connect(m_ui.actionEnableEEConsoleLogging, &QAction::triggered, this, &MainWindow::onLoggingOptionChanged);
 	SettingWidgetBinder::BindWidgetToBoolSetting(nullptr, m_ui.actionEnableIOPConsoleLogging, "Logging", "EnableIOPConsole", true);
 	connect(m_ui.actionEnableIOPConsoleLogging, &QAction::triggered, this, &MainWindow::onLoggingOptionChanged);
+	SettingWidgetBinder::BindWidgetToBoolSetting(nullptr, m_ui.actionEnableFileLogging, "Logging", "EnableFileLogging", false);
+	connect(m_ui.actionEnableFileLogging, &QAction::triggered, this, &MainWindow::onLoggingOptionChanged);
+	SettingWidgetBinder::BindWidgetToBoolSetting(nullptr, m_ui.actionEnableLogTimestamps, "Logging", "EnableTimestamps", true);
+	connect(m_ui.actionEnableLogTimestamps, &QAction::triggered, this, &MainWindow::onLoggingOptionChanged);
+	SettingWidgetBinder::BindWidgetToBoolSetting(nullptr, m_ui.actionEnableCDVDVerboseReads, "EmuCore", "CdvdVerboseReads", false);
+	SettingWidgetBinder::BindWidgetToBoolSetting(nullptr, m_ui.actionSaveBlockDump, "EmuCore", "CdvdDumpBlocks", false);
+	connect(m_ui.actionSaveBlockDump, &QAction::toggled, this, &MainWindow::onBlockDumpActionToggled);
 
 	connect(m_ui.actionSaveGSDump, &QAction::triggered, this, &MainWindow::onSaveGSDumpActionTriggered);
 
@@ -287,7 +296,7 @@ void MainWindow::recreate()
 
 void MainWindow::setStyleFromSettings()
 {
-	const std::string theme(QtHost::GetBaseStringSettingValue("UI", "Theme", DEFAULT_THEME_NAME));
+	const std::string theme(Host::GetBaseStringSettingValue("UI", "Theme", DEFAULT_THEME_NAME));
 
 	if (theme == "fusion")
 	{
@@ -516,7 +525,7 @@ void MainWindow::setStyleFromSettings()
 
 void MainWindow::setIconThemeFromSettings()
 {
-	const std::string theme(QtHost::GetBaseStringSettingValue("UI", "Theme", DEFAULT_THEME_NAME));
+	const std::string theme(Host::GetBaseStringSettingValue("UI", "Theme", DEFAULT_THEME_NAME));
 	QString icon_theme;
 
 	if (theme == "darkfusion" || theme == "darkfusionblue" || theme == "dualtoneOrangeBlue" || theme == "ScarletDevilRed")
@@ -537,12 +546,35 @@ void MainWindow::onSaveGSDumpActionTriggered()
 	g_emu_thread->queueSnapshot(1);
 }
 
+void MainWindow::onBlockDumpActionToggled(bool checked)
+{
+	if (!checked)
+		return;
+
+	std::string old_directory(Host::GetBaseStringSettingValue("EmuCore", "BlockDumpSaveDirectory", ""));
+	if (old_directory.empty())
+		old_directory = FileSystem::GetWorkingDirectory();
+
+	// prompt for a location to save
+	const QString new_dir(
+		QFileDialog::getExistingDirectory(this, tr("Select location to save block dump:"),
+			QString::fromStdString(old_directory)));
+	if (new_dir.isEmpty())
+	{
+		// disable it again
+		m_ui.actionSaveBlockDump->setChecked(false);
+		return;
+	}
+
+	QtHost::SetBaseStringSettingValue("EmuCore", "BlockDumpSaveDirectory", new_dir.toUtf8().constData());
+}
+
 void MainWindow::saveStateToConfig()
 {
 	{
 		const QByteArray geometry = saveGeometry();
 		const QByteArray geometry_b64 = geometry.toBase64();
-		const std::string old_geometry_b64 = QtHost::GetBaseStringSettingValue("UI", "MainWindowGeometry");
+		const std::string old_geometry_b64 = Host::GetBaseStringSettingValue("UI", "MainWindowGeometry");
 		if (old_geometry_b64 != geometry_b64.constData())
 			QtHost::SetBaseStringSettingValue("UI", "MainWindowGeometry", geometry_b64.constData());
 	}
@@ -550,7 +582,7 @@ void MainWindow::saveStateToConfig()
 	{
 		const QByteArray state = saveState();
 		const QByteArray state_b64 = state.toBase64();
-		const std::string old_state_b64 = QtHost::GetBaseStringSettingValue("UI", "MainWindowState");
+		const std::string old_state_b64 = Host::GetBaseStringSettingValue("UI", "MainWindowState");
 		if (old_state_b64 != state_b64.constData())
 			QtHost::SetBaseStringSettingValue("UI", "MainWindowState", state_b64.constData());
 	}
@@ -559,14 +591,14 @@ void MainWindow::saveStateToConfig()
 void MainWindow::restoreStateFromConfig()
 {
 	{
-		const std::string geometry_b64 = QtHost::GetBaseStringSettingValue("UI", "MainWindowGeometry");
+		const std::string geometry_b64 = Host::GetBaseStringSettingValue("UI", "MainWindowGeometry");
 		const QByteArray geometry = QByteArray::fromBase64(QByteArray::fromStdString(geometry_b64));
 		if (!geometry.isEmpty())
 			restoreGeometry(geometry);
 	}
 
 	{
-		const std::string state_b64 = QtHost::GetBaseStringSettingValue("UI", "MainWindowState");
+		const std::string state_b64 = Host::GetBaseStringSettingValue("UI", "MainWindowState");
 		const QByteArray state = QByteArray::fromBase64(QByteArray::fromStdString(state_b64));
 		if (!state.isEmpty())
 			restoreState(state);
@@ -781,7 +813,7 @@ bool MainWindow::requestShutdown(bool allow_confirm /* = true */, bool allow_sav
 	bool save_state = allow_save_to_state && EmuConfig.SaveStateOnShutdown;
 
 	// only confirm on UI thread because we need to display a msgbox
-	if (allow_confirm && !GSDumpReplayer::IsReplayingDump() && QtHost::GetBaseBoolSettingValue("UI", "ConfirmShutdown", true))
+	if (allow_confirm && !GSDumpReplayer::IsReplayingDump() && Host::GetBaseBoolSettingValue("UI", "ConfirmShutdown", true))
 	{
 		VMLock lock(pauseAndLockVM());
 
@@ -958,26 +990,12 @@ void MainWindow::onGameListEntryContextMenuRequested(const QPoint& point)
 
 void MainWindow::onStartFileActionTriggered()
 {
-	QString filename =
+	QString path =
 		QDir::toNativeSeparators(QFileDialog::getOpenFileName(this, tr("Select Disc Image"), QString(), tr(DISC_IMAGE_FILTER), nullptr));
-	if (filename.isEmpty())
+	if (path.isEmpty())
 		return;
 
-	std::shared_ptr<VMBootParameters> params = std::make_shared<VMBootParameters>();
-	params->filename = filename.toStdString();
-
-	// we might still be saving a resume state...
-	VMManager::WaitForSaveStateFlush();
-
-	const std::optional<bool> resume(
-		promptForResumeState(
-			QString::fromStdString(VMManager::GetSaveStateFileName(params->filename.c_str(), -1))));
-	if (!resume.has_value())
-		return;
-	else if (resume.value())
-		params->state_index = -1;
-
-	g_emu_thread->startVM(std::move(params));
+	doStartDisc(path);
 }
 
 void MainWindow::onStartBIOSActionTriggered()
@@ -1160,7 +1178,7 @@ void MainWindow::onUpdateCheckComplete()
 
 void MainWindow::startupUpdateCheck()
 {
-	if (!QtHost::GetBaseBoolSettingValue("AutoUpdater", "CheckAtStartup", true))
+	if (!Host::GetBaseBoolSettingValue("AutoUpdater", "CheckAtStartup", true))
 		return;
 
 	checkForUpdates(false);
@@ -1360,6 +1378,59 @@ void MainWindow::closeEvent(QCloseEvent* event)
 	QMainWindow::closeEvent(event);
 }
 
+static QString getFilenameFromMimeData(const QMimeData* md)
+{
+	QString filename;
+	if (md->hasUrls())
+	{
+		// only one url accepted
+		const QList<QUrl> urls(md->urls());
+		if (urls.size() == 1)
+			filename = urls.front().toLocalFile();
+	}
+
+	return filename;
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent* event)
+{
+	const std::string filename(getFilenameFromMimeData(event->mimeData()).toStdString());
+
+	// allow save states being dragged in
+	if (!VMManager::IsLoadableFileName(filename) && !VMManager::IsSaveStateFileName(filename))
+		return;
+
+	event->acceptProposedAction();
+}
+
+void MainWindow::dropEvent(QDropEvent* event)
+{
+	const QString filename(getFilenameFromMimeData(event->mimeData()));
+	const std::string filename_str(filename.toStdString());
+	if (VMManager::IsSaveStateFileName(filename_str))
+	{
+		// can't load a save state without a current VM 
+		if (m_vm_valid)
+		{
+			event->acceptProposedAction();
+			g_emu_thread->loadState(filename);
+		}
+		else
+		{
+			QMessageBox::critical(this, tr("Load State Failed"), tr("Cannot load a save state without a running VM."));
+		}
+	}
+	else if (VMManager::IsLoadableFileName(filename_str))
+	{
+		// if we're already running, do a disc change, otherwise start
+		event->acceptProposedAction();
+		if (m_vm_valid)
+			doDiscChange(filename);
+		else
+			doStartDisc(filename);
+	}	
+}
+
 DisplayWidget* MainWindow::createDisplay(bool fullscreen, bool render_to_main)
 {
 	DevCon.WriteLn("createDisplay(%u, %u)", static_cast<u32>(fullscreen), static_cast<u32>(render_to_main));
@@ -1368,7 +1439,7 @@ DisplayWidget* MainWindow::createDisplay(bool fullscreen, bool render_to_main)
 	if (!host_display)
 		return nullptr;
 
-	const std::string fullscreen_mode(QtHost::GetBaseStringSettingValue("EmuCore/GS", "FullscreenMode", ""));
+	const std::string fullscreen_mode(Host::GetBaseStringSettingValue("EmuCore/GS", "FullscreenMode", ""));
 	const bool is_exclusive_fullscreen = (fullscreen && !fullscreen_mode.empty() && host_display->SupportsFullscreen());
 
 	QWidget* container;
@@ -1450,7 +1521,7 @@ DisplayWidget* MainWindow::updateDisplay(bool fullscreen, bool render_to_main, b
 	QWidget* container = m_display_container ? static_cast<QWidget*>(m_display_container) : static_cast<QWidget*>(m_display_widget);
 	const bool is_fullscreen = isRenderingFullscreen();
 	const bool is_rendering_to_main = isRenderingToMain();
-	const std::string fullscreen_mode(QtHost::GetBaseStringSettingValue("EmuCore/GS", "FullscreenMode", ""));
+	const std::string fullscreen_mode(Host::GetBaseStringSettingValue("EmuCore/GS", "FullscreenMode", ""));
 	const bool is_exclusive_fullscreen = (fullscreen && !fullscreen_mode.empty() && host_display->SupportsFullscreen());
 	const bool changing_surfaceless = (!m_display_widget != surfaceless);
 	if (fullscreen == is_fullscreen && is_rendering_to_main == render_to_main && !changing_surfaceless)
@@ -1625,14 +1696,14 @@ void MainWindow::saveDisplayWindowGeometryToConfig()
 
 	const QByteArray geometry = getDisplayContainer()->saveGeometry();
 	const QByteArray geometry_b64 = geometry.toBase64();
-	const std::string old_geometry_b64 = QtHost::GetBaseStringSettingValue("UI", "DisplayWindowGeometry");
+	const std::string old_geometry_b64 = Host::GetBaseStringSettingValue("UI", "DisplayWindowGeometry");
 	if (old_geometry_b64 != geometry_b64.constData())
 		QtHost::SetBaseStringSettingValue("UI", "DisplayWindowGeometry", geometry_b64.constData());
 }
 
 void MainWindow::restoreDisplayWindowGeometryFromConfig()
 {
-	const std::string geometry_b64 = QtHost::GetBaseStringSettingValue("UI", "DisplayWindowGeometry");
+	const std::string geometry_b64 = Host::GetBaseStringSettingValue("UI", "DisplayWindowGeometry");
 	const QByteArray geometry = QByteArray::fromBase64(QByteArray::fromStdString(geometry_b64));
 	QWidget* container = getDisplayContainer();
 	if (!geometry.isEmpty())
@@ -1814,7 +1885,7 @@ std::optional<bool> MainWindow::promptForResumeState(const QString& save_state_p
 	QPushButton* load = msgbox.addButton(tr("Load State"), QMessageBox::AcceptRole);
 	QPushButton* boot = msgbox.addButton(tr("Fresh Boot"), QMessageBox::RejectRole);
 	QPushButton* delboot = msgbox.addButton(tr("Delete And Boot"), QMessageBox::RejectRole);
-	QPushButton* cancel = msgbox.addButton(QMessageBox::Cancel);
+	msgbox.addButton(QMessageBox::Cancel);
 	msgbox.setDefaultButton(load);
 	msgbox.exec();
 
@@ -1861,7 +1932,9 @@ void MainWindow::loadSaveStateFile(const QString& filename, const QString& state
 {
 	if (m_vm_valid)
 	{
-		g_emu_thread->loadState(filename);
+		if (!filename.isEmpty() && m_current_disc_path != filename)
+			g_emu_thread->changeDisc(m_current_disc_path);
+		g_emu_thread->loadState(state_filename);
 	}
 	else
 	{
@@ -1977,6 +2050,28 @@ void MainWindow::updateSaveStateMenus(const QString& filename, const QString& se
 		populateLoadStateMenu(m_ui.menuLoadState, filename, serial, crc);
 	if (save_enabled)
 		populateSaveStateMenu(m_ui.menuSaveState, serial, crc);
+}
+
+void MainWindow::doStartDisc(const QString& path)
+{
+	if (m_vm_valid)
+		return;
+
+	std::shared_ptr<VMBootParameters> params = std::make_shared<VMBootParameters>();
+	params->filename = path.toStdString();
+
+	// we might still be saving a resume state...
+	VMManager::WaitForSaveStateFlush();
+
+	const std::optional<bool> resume(
+		promptForResumeState(
+			QString::fromStdString(VMManager::GetSaveStateFileName(params->filename.c_str(), -1))));
+	if (!resume.has_value())
+		return;
+	else if (resume.value())
+		params->state_index = -1;
+
+	g_emu_thread->startVM(std::move(params));
 }
 
 void MainWindow::doDiscChange(const QString& path)

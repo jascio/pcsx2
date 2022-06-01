@@ -19,6 +19,7 @@ target_sources(pcsx2-qt PRIVATE
 	AutoUpdaterDialog.ui
 	DisplayWidget.cpp
 	DisplayWidget.h
+	EarlyHardwareCheck.cpp
 	EmuThread.cpp
 	EmuThread.h
 	Main.cpp
@@ -90,9 +91,14 @@ target_sources(pcsx2-qt PRIVATE
 	Settings/MemoryCardSettingsWidget.cpp
 	Settings/MemoryCardSettingsWidget.h
 	Settings/MemoryCardSettingsWidget.ui
+	Settings/DEV9DnsHostDialog.cpp
+	Settings/DEV9DnsHostDialog.h
+	Settings/DEV9DnsHostDialog.ui
 	Settings/DEV9SettingsWidget.cpp
 	Settings/DEV9SettingsWidget.h
 	Settings/DEV9SettingsWidget.ui
+	Settings/DEV9UiCommon.cpp
+	Settings/DEV9UiCommon.h
 	Settings/HddCreateQt.cpp
 	Settings/HddCreateQt.h
 	Settings/SettingsDialog.cpp

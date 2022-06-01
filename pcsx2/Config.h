@@ -431,6 +431,7 @@ struct Pcsx2Config
 			struct
 			{
 				bool
+					DisableInterlaceOffset: 1,
 					PCRTCOffsets : 1,
 					IntegerScaling : 1,
 					LinearPresent : 1,
@@ -440,6 +441,7 @@ struct Pcsx2Config
 					DisableDualSourceBlend : 1,
 					DisableFramebufferFetch : 1,
 					ThreadedPresentation : 1,
+					SkipDuplicateFrames : 1,
 					OsdShowMessages : 1,
 					OsdShowSpeed : 1,
 					OsdShowFPS : 1,
@@ -940,6 +942,7 @@ struct Pcsx2Config
 		EnableCheats : 1, // enables cheat detection and application
 		EnablePINE : 1, // enables inter-process communication
 		EnableWideScreenPatches : 1,
+		EnableNoInterlacingPatches : 1,
 		// TODO - Vaser - where are these settings exposed in the Qt UI?
 		EnableRecordingTools : 1,
 #ifdef PCSX2_CORE
@@ -1032,6 +1035,7 @@ namespace EmuFolders
 	extern std::string Logs;
 	extern std::string Cheats;
 	extern std::string CheatsWS;
+	extern std::string CheatsNI;
 	extern std::string Resources;
 	extern std::string Cache;
 	extern std::string Covers;
@@ -1076,7 +1080,6 @@ namespace EmuFolders
 #define CHECK_VU_EXTRA_OVERFLOW (EmuConfig.Cpu.Recompiler.vuExtraOverflow) // If enabled, Operands are clamped before being used in the VU recs
 #define CHECK_VU_SIGN_OVERFLOW (EmuConfig.Cpu.Recompiler.vuSignOverflow)
 #define CHECK_VU_UNDERFLOW (EmuConfig.Cpu.Recompiler.vuUnderflow)
-#define CHECK_VU_EXTRA_FLAGS 0 // Always disabled now // Sets correct flags in the sVU recs
 
 #define CHECK_FPU_OVERFLOW (EmuConfig.Cpu.Recompiler.fpuOverflow)
 #define CHECK_FPU_EXTRA_OVERFLOW (EmuConfig.Cpu.Recompiler.fpuExtraOverflow) // If enabled, Operands are checked for infinities before being used in the FPU recs
