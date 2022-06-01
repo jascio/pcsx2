@@ -872,7 +872,7 @@ void GSTextureCache::InvalidateVideoMem(const GSOffset& off, const GSVector4i& r
 						t->m_texture ? t->m_texture->GetID() : 0,
 						t->m_TEX0.TBP0, r.x, r.y, r.z, r.w);
 					t->m_TEX0.TBW = bw;									
-					if (g_gs_renderer->m_game.title == CRC::RatchetGames && GSConfig.UserHacks_PushbackTargetValid)
+					if (g_gs_renderer->m_game.title == CRC::RatchetGames || GSConfig.UserHacks_PushbackTargetValid)
 					{
 						t->m_dirty.push_back(GSDirtyRect(GSVector4i(t->m_valid), psm, bw));
 					}
