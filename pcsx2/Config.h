@@ -468,6 +468,7 @@ struct Pcsx2Config
 					UserHacks_CPUFBConversion : 1,
 					UserHacks_DisableDepthSupport : 1,
 					UserHacks_DisablePartialInvalidation : 1,
+					UserHacks_PushbackTargetValid : 1,
 					UserHacks_DisableSafeFeatures : 1,
 					UserHacks_MergePPSprite : 1,
 					UserHacks_WildHack : 1,

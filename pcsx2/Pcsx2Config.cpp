@@ -332,6 +332,7 @@ Pcsx2Config::GSOptions::GSOptions()
 	UserHacks_CPUFBConversion = false;
 	UserHacks_DisableDepthSupport = false;
 	UserHacks_DisablePartialInvalidation = false;
+	UserHacks_PushbackTargetValid = false;
 	UserHacks_DisableSafeFeatures = false;
 	UserHacks_MergePPSprite = false;
 	UserHacks_WildHack = false;
@@ -546,6 +547,7 @@ void Pcsx2Config::GSOptions::ReloadIniSettings()
 	GSSettingBoolEx(UserHacks_CPUFBConversion, "UserHacks_CPU_FB_Conversion");
 	GSSettingBoolEx(UserHacks_DisableDepthSupport, "UserHacks_DisableDepthSupport");
 	GSSettingBoolEx(UserHacks_DisablePartialInvalidation, "UserHacks_DisablePartialInvalidation");
+	GSSettingBoolEx(UserHacks_PushbackTargetValid, "UserHacks_PushbackTargetValid");
 	GSSettingBoolEx(UserHacks_DisableSafeFeatures, "UserHacks_Disable_Safe_Features");
 	GSSettingBoolEx(UserHacks_MergePPSprite, "UserHacks_merge_pp_sprite");
 	GSSettingBoolEx(UserHacks_WildHack, "UserHacks_WildHack");
@@ -637,6 +639,7 @@ void Pcsx2Config::GSOptions::MaskUserHacks()
 	WrapGSMem = false;
 	UserHacks_DisablePartialInvalidation = false;
 	UserHacks_DisableDepthSupport = false;
+    UserHacks_PushbackTargetValid: false,
 	UserHacks_CPUFBConversion = false;
 	UserHacks_TextureInsideRt = false;
 	UserHacks_TCOffsetX = 0;
