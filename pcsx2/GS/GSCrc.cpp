@@ -331,15 +331,6 @@ const CRC::Game CRC::m_games[] =
 	{0xDA366A53, JakX, US, 0}, // Public Beta v.1
 	{0x7B564230, JakX, US, 0}, // Jak and Daxter Complete Trilogy Demo
 	{0xDBA28C59, JakX, US, 0}, // Greatest Hits
-	{0x76F724A3, RatchetGames, EU, 0}, // R&C 1 Pal EU
-	{0xD697D204, RatchetGames, EU, 0}, // Ratchet Gladiator Pal EU
-	{0x2F486E6F, RatchetGames, EU, 0}, // R&C 2 Pal EU
-	{0x17125698, RatchetGames, EU, 0}, // R&C 3 Pal EU
-	{0xCE4933D0, RatchetGames, US, 0}, // R&C 1 NTSC-U
-	{0x9BFBCD42, RatchetGames, US, 0}, // Ratchet Deadlocked NTSC-U
-	{0x38996035, RatchetGames, US, 0}, // R&C 2 NTSC-U ???
-	{0x45FE0CC4, RatchetGames, US, 0}, // R&C UYA NTSC-U
-	{0xC78F90D4, RatchetGames, JP, 0}, // R&C 2 NTSC-J
 };
 
 std::map<u32, const CRC::Game*> CRC::m_map;
